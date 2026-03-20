@@ -522,7 +522,25 @@ class ActImportWizardContact(models.TransientModel):
 # ═════════════════════════════════════════════════════════════════════
 #  SYNC wizard  — launched from an OPEN partner FORM
 #  Searches ACT by the partner's existing name/type. UPDATES that record.
+#  Shows a field-by-field preview before applying changes.
 # ═════════════════════════════════════════════════════════════════════
+
+# Human-readable labels for partner fields
+_FIELD_LABELS = {
+    "street": "Street",
+    "street2": "Street 2",
+    "city": "City",
+    "state_id": "State",
+    "zip": "Zip",
+    "country_id": "Country",
+    "phone": "Phone",
+    "mobile": "Mobile",
+    "email": "Email",
+    "website": "Website",
+    "function": "Job Title",
+    "parent_id": "Company",
+}
+
 
 class ActSyncWizard(models.TransientModel):
     _name = "act.sync.wizard"
@@ -535,8 +553,14 @@ class ActSyncWizard(models.TransientModel):
     result_ids = fields.One2many(
         "act.sync.wizard.line", "wizard_id", string="Results",
     )
+    diff_ids = fields.One2many(
+        "act.sync.wizard.diff", "wizard_id", string="Changes",
+    )
+    selected_line_id = fields.Many2one(
+        "act.sync.wizard.line", string="Selected ACT Record",
+    )
     state = fields.Selection(
-        [("search", "Search"), ("results", "Results")],
+        [("search", "Search"), ("results", "Results"), ("preview", "Preview")],
         default="search",
     )
 
@@ -619,8 +643,55 @@ class ActSyncWizard(models.TransientModel):
 
     def action_back(self):
         self.result_ids.unlink()
+        self.diff_ids.unlink()
+        self.selected_line_id = False
         self.state = "search"
         return self._reopen()
+
+    def action_back_to_results(self):
+        self.diff_ids.unlink()
+        self.selected_line_id = False
+        self.state = "results"
+        return self._reopen()
+
+    def action_apply_sync(self):
+        """Apply the selected diff lines to the partner."""
+        self.ensure_one()
+        partner = self.partner_id
+        line = self.selected_line_id
+
+        selected_diffs = self.diff_ids.filtered(lambda d: d.apply)
+        if not selected_diffs:
+            raise UserError(_("No fields selected to sync."))
+
+        vals = {"act_last_sync": fields.Datetime.now()}
+
+        # Set ACT IDs
+        if line.record_type == "company":
+            vals["act_company_id"] = line.act_company_id
+        else:
+            vals["act_contact_id"] = line.act_contact_id
+            if line.act_company_id:
+                vals["act_company_id"] = line.act_company_id
+
+        for diff in selected_diffs:
+            field_name = diff.field_name
+            if field_name in ("state_id", "country_id", "parent_id"):
+                # Relational fields stored as int
+                if diff.new_value_id:
+                    vals[field_name] = int(diff.new_value_id)
+            else:
+                vals[field_name] = diff.new_value or False
+
+        partner.write(vals)
+
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "res.partner",
+            "res_id": partner.id,
+            "view_mode": "form",
+            "target": "current",
+        }
 
 
 class ActSyncWizardLine(models.TransientModel):
@@ -650,61 +721,114 @@ class ActSyncWizardLine(models.TransientModel):
     email = fields.Char()
     employees = fields.Integer()
 
-    def action_sync(self):
-        """Update the open partner record with data from this ACT result."""
+    def action_preview_sync(self):
+        """Build a diff between the partner and this ACT record."""
         self.ensure_one()
-        partner = self.wizard_id.partner_id
+        wizard = self.wizard_id
+        partner = wizard.partner_id
+
         state, country = ActMixin._resolve_geo(
             self.env, self.state_name, self.country_name
         )
 
-        vals = {
-            "act_last_sync": fields.Datetime.now(),
-        }
+        # Build proposed values map: field_name → (new_value, new_display, new_id)
+        proposed = {}
 
-        # Only update fields that have data from ACT
-        if self.street:
-            vals["street"] = self.street
-        if self.street2:
-            vals["street2"] = self.street2
-        if self.city:
-            vals["city"] = self.city
-        if state:
-            vals["state_id"] = state.id
-        if self.zip:
-            vals["zip"] = self.zip
-        if country:
-            vals["country_id"] = country.id
-        if self.phone:
-            vals["phone"] = self.phone
-        if self.email:
-            vals["email"] = self.email
-
+        # Common fields
+        field_map = [
+            ("street", self.street),
+            ("street2", self.street2),
+            ("city", self.city),
+            ("zip", self.zip),
+            ("phone", self.phone),
+            ("email", self.email),
+        ]
         if self.record_type == "company":
-            vals["act_company_id"] = self.act_company_id
-            if self.website:
-                vals["website"] = self.website
+            field_map.append(("website", self.website))
         else:
-            vals["act_contact_id"] = self.act_contact_id
-            if self.act_company_id:
-                vals["act_company_id"] = self.act_company_id
-                # Auto-import parent company if needed
-                parent = ActMixin._import_company_from_act(
-                    self.env, self.act_company_id
+            field_map.extend([
+                ("function", self.function),
+                ("mobile", self.mobile),
+            ])
+
+        for field_name, act_val in field_map:
+            if act_val:
+                proposed[field_name] = (act_val, act_val, "")
+
+        # Relational: state
+        if state:
+            proposed["state_id"] = (
+                state.name, state.name, str(state.id)
+            )
+        # Relational: country
+        if country:
+            proposed["country_id"] = (
+                country.name, country.name, str(country.id)
+            )
+        # Relational: parent company (individual only)
+        if self.record_type != "company" and self.act_company_id:
+            parent = ActMixin._import_company_from_act(
+                self.env, self.act_company_id
+            )
+            if parent:
+                proposed["parent_id"] = (
+                    parent.name, parent.name, str(parent.id)
                 )
-                if parent:
-                    vals["parent_id"] = parent.id
-            if self.function:
-                vals["function"] = self.function
-            if self.mobile:
-                vals["mobile"] = self.mobile
 
-        partner.write(vals)
+        # Build diff lines
+        diff_lines = []
+        has_changes = False
+        for field_name, (new_val, new_display, new_id) in proposed.items():
+            # Get current value
+            current_val = partner[field_name]
+            if hasattr(current_val, 'name'):
+                # Relational field — display name
+                current_display = current_val.name or ""
+            else:
+                current_display = str(current_val or "")
 
-        return {
-            "type": "ir.actions.act_window",
-            "res_model": "res.partner",
-            "res_id": partner.id,
-            "view_mode": "form",
-            "target": "current",
-        }
+            # Determine if this is a real change
+            is_change = current_display.strip() != new_display.strip()
+            is_new = not current_display.strip()
+
+            if not new_display.strip():
+                continue  # ACT has nothing for this field
+
+            diff_lines.append((0, 0, {
+                "wizard_id": wizard.id,
+                "field_name": field_name,
+                "field_label": _FIELD_LABELS.get(field_name, field_name),
+                "current_value": current_display,
+                "new_value": new_display,
+                "new_value_id": new_id,
+                "is_change": is_change,
+                "is_new": is_new,
+                "apply": is_change,  # Pre-check changed fields
+            }))
+            if is_change:
+                has_changes = True
+
+        if not diff_lines:
+            raise UserError(_("ACT record has no data to sync."))
+
+        wizard.write({
+            "diff_ids": diff_lines,
+            "selected_line_id": self.id,
+            "state": "preview",
+        })
+        return wizard._reopen()
+
+
+class ActSyncWizardDiff(models.TransientModel):
+    _name = "act.sync.wizard.diff"
+    _description = "ACT Sync Field Diff"
+
+    wizard_id = fields.Many2one("act.sync.wizard", ondelete="cascade")
+    apply = fields.Boolean(string="Apply", default=False)
+    field_name = fields.Char(string="Field (technical)")
+    field_label = fields.Char(string="Field")
+    current_value = fields.Char(string="Current (Odoo)")
+    new_value = fields.Char(string="From ACT")
+    new_value_id = fields.Char(string="Related ID")
+    is_change = fields.Boolean(string="Changed")
+    is_new = fields.Boolean(string="New")

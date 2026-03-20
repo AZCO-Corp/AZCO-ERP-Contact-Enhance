@@ -125,6 +125,7 @@
                 <field name="state" invisible="1"/>
                 <field name="partner_id" invisible="1"/>
                 <field name="partner_is_company" invisible="1"/>
+                <field name="selected_line_id" invisible="1"/>
 
                 <!-- SEARCH -->
                 <div invisible="state != 'search'">
@@ -149,7 +150,7 @@
                     <div class="alert alert-warning" role="alert">
                         <strong>Syncing: </strong>
                         <field name="partner_name" readonly="1" nolabel="1"/>
-                        <span> — Click "Sync" to update this partner with ACT data.</span>
+                        <span> — Click "Preview" to see what would change before applying.</span>
                     </div>
                     <field name="result_ids" nolabel="1">
                         <list>
@@ -167,13 +168,47 @@
                             <field name="state_name" string="State" optional="show"/>
                             <field name="phone" optional="show"/>
                             <field name="email" optional="show"/>
-                            <button name="action_sync" string="Sync"
+                            <button name="action_preview_sync" string="Preview"
                                     type="object" class="btn-warning btn-sm"
-                                    icon="fa-refresh"/>
+                                    icon="fa-eye"/>
                         </list>
                     </field>
                     <footer>
                         <button name="action_back" string="&#8592; New Search"
+                                type="object" class="btn-secondary"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </div>
+
+                <!-- PREVIEW DIFF -->
+                <div invisible="state != 'preview'">
+                    <div class="alert alert-info" role="alert">
+                        <strong>Review changes for: </strong>
+                        <field name="partner_name" readonly="1" nolabel="1"/>
+                        <span> — Check the fields you want to update, then click "Apply".</span>
+                    </div>
+                    <field name="diff_ids" nolabel="1">
+                        <list editable="bottom"
+                              decoration-success="is_new"
+                              decoration-warning="is_change and not is_new"
+                              decoration-muted="not is_change and not is_new">
+                            <field name="apply" string="Apply"
+                                   readonly="not is_change and not is_new"/>
+                            <field name="field_label" string="Field" readonly="1"/>
+                            <field name="current_value" string="Current (Odoo)" readonly="1"/>
+                            <field name="new_value" string="From ACT" readonly="1"/>
+                            <field name="is_change" column_invisible="1"/>
+                            <field name="is_new" column_invisible="1"/>
+                            <field name="field_name" column_invisible="1"/>
+                            <field name="new_value_id" column_invisible="1"/>
+                        </list>
+                    </field>
+                    <footer>
+                        <button name="action_apply_sync"
+                                string="Apply Selected Changes"
+                                type="object" class="btn-primary" icon="fa-check"/>
+                        <button name="action_back_to_results"
+                                string="&#8592; Back to Results"
                                 type="object" class="btn-secondary"/>
                         <button string="Cancel" class="btn-secondary" special="cancel"/>
                     </footer>
