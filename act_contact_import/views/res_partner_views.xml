@@ -7,6 +7,7 @@
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="priority">50</field>
         <field name="arch" type="xml">
+            <!-- Import button at the top -->
             <xpath expr="//div[hasclass('oe_title')]" position="before">
                 <div class="float-end">
                     <button name="action_open_act_import"
@@ -16,13 +17,20 @@
                             icon="fa-download"/>
                 </div>
             </xpath>
-            <xpath expr="//field[@name='vat']" position="after">
-                <field name="act_contact_id" readonly="1"
-                       invisible="not act_contact_id"/>
-                <field name="act_company_id" readonly="1"
-                       invisible="not act_company_id"/>
-                <field name="act_last_sync" readonly="1"
-                       invisible="not act_last_sync"/>
+            <!-- ACT tab at the bottom of the notebook -->
+            <xpath expr="//notebook" position="inside">
+                <page string="ACT" name="act_info"
+                      invisible="not act_contact_id and not act_company_id">
+                    <group>
+                        <group string="ACT Identifiers">
+                            <field name="act_contact_id" readonly="1"/>
+                            <field name="act_company_id" readonly="1"/>
+                        </group>
+                        <group string="Sync Info">
+                            <field name="act_last_sync" readonly="1"/>
+                        </group>
+                    </group>
+                </page>
             </xpath>
         </field>
     </record>
