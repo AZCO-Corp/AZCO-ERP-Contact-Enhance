@@ -22,19 +22,16 @@ class ResPartner(models.Model):
         readonly=True,
     )
 
-    def action_open_act_import(self):
-        """Open the ACT import wizard pre-filled for this partner."""
+    def action_open_act_sync(self):
+        """Open the ACT sync wizard to update this partner from ACT."""
         self.ensure_one()
-        search_type = "company" if self.is_company else "individual"
-        default_search = self.name or ""
         return {
             "type": "ir.actions.act_window",
-            "res_model": "act.import.wizard",
+            "res_model": "act.sync.wizard",
             "view_mode": "form",
             "target": "new",
             "context": {
-                "default_search_type": search_type,
-                "default_search_term": default_search,
                 "default_partner_id": self.id,
+                "default_search_term": self.name or "",
             },
         }

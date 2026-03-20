@@ -1,23 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- Add "Import from ACT" button to partner form -->
     <record id="view_partner_form_act_import" model="ir.ui.view">
         <field name="name">res.partner.form.act.import</field>
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="priority">50</field>
         <field name="arch" type="xml">
-            <!-- Import button at the top -->
+            <!-- "Sync with ACT" button on partner form -->
             <xpath expr="//div[hasclass('oe_title')]" position="before">
                 <div class="float-end">
-                    <button name="action_open_act_import"
-                            string="Import from ACT"
+                    <button name="action_open_act_sync"
+                            string="Sync with ACT"
                             type="object"
                             class="btn-secondary"
-                            icon="fa-download"/>
+                            icon="fa-refresh"/>
                 </div>
             </xpath>
-            <!-- ACT tab at the bottom of the notebook -->
+            <!-- ACT tab at the bottom -->
             <xpath expr="//notebook" position="inside">
                 <page string="ACT" name="act_info"
                       invisible="not act_contact_id and not act_company_id">

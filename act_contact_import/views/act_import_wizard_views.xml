@@ -1,65 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
+
+    <!-- ============================================================
+         IMPORT wizard  (Contacts list page → create NEW records)
+         ============================================================ -->
+
     <record id="act_import_wizard_form" model="ir.ui.view">
         <field name="name">act.import.wizard.form</field>
         <field name="model">act.import.wizard</field>
         <field name="arch" type="xml">
             <form string="Import from ACT">
                 <field name="state" invisible="1"/>
-                <field name="partner_id" invisible="1"/>
-                <field name="search_type" invisible="1"/>
 
-                <!-- SEARCH STATE -->
+                <!-- SEARCH -->
                 <div invisible="state != 'search'">
                     <group>
-                        <group>
-                            <field name="search_type" widget="radio"/>
-                        </group>
-                        <group>
-                            <field name="search_term" placeholder="Type company or contact name..."/>
-                        </group>
+                        <field name="search_term"
+                               placeholder="Search companies and contacts in ACT..."/>
                     </group>
                     <footer>
                         <button name="action_search" string="Search ACT"
-                                type="object" class="btn-primary"/>
+                                type="object" class="btn-primary" icon="fa-search"/>
                         <button string="Cancel" class="btn-secondary" special="cancel"/>
                     </footer>
                 </div>
 
-                <!-- RESULTS STATE -->
+                <!-- RESULTS (companies + individuals combined) -->
                 <div invisible="state != 'results'">
                     <div class="alert alert-info" role="alert">
                         <strong>Results for: </strong>
                         <field name="search_term" readonly="1" nolabel="1"/>
-                        <span invisible="search_type != 'company'">
-                            — Click "Import" to create/update partner, or "View Contacts" to see associated people
-                        </span>
-                        <span invisible="search_type != 'individual'">
-                            — Click "Import" to create/update partner (company will be auto-imported if needed)
-                        </span>
+                        <span> — "Import" creates a new contact. For companies, "View Contacts" lets you bulk-import people.</span>
                     </div>
                     <field name="result_ids" nolabel="1">
                         <list>
+                            <field name="record_type" string="Type"/>
                             <field name="name" string="Name"/>
-                            <field name="function" string="Job Title"
-                                   invisible="parent.search_type == 'company'"
-                                   optional="show"/>
-                            <field name="company_name_act" string="Company"
-                                   invisible="parent.search_type == 'company'"
-                                   optional="show"/>
-                            <field name="industry"
-                                   invisible="parent.search_type == 'individual'"
-                                   optional="show"/>
-                            <field name="contact_count" string="# Contacts"
-                                   invisible="parent.search_type == 'individual'"
-                                   optional="show"/>
+                            <field name="function" string="Job Title" optional="show"/>
+                            <field name="company_name_act" string="Company" optional="show"/>
+                            <field name="contact_count" string="# Contacts" optional="show"/>
                             <field name="city" optional="show"/>
                             <field name="state_name" string="State" optional="show"/>
                             <field name="phone" optional="show"/>
                             <field name="email" optional="show"/>
                             <button name="action_view_contacts" string="View Contacts"
                                     type="object" class="btn-info btn-sm"
-                                    invisible="parent.search_type == 'individual'"
+                                    invisible="record_type != 'company'"
                                     icon="fa-users"/>
                             <button name="action_import" string="Import"
                                     type="object" class="btn-primary btn-sm"
@@ -67,19 +53,20 @@
                         </list>
                     </field>
                     <footer>
-                        <button name="action_back" string="&#8592; Back to Search"
+                        <button name="action_back" string="&#8592; New Search"
                                 type="object" class="btn-secondary"/>
                         <button string="Close" class="btn-secondary" special="cancel"/>
                     </footer>
                 </div>
 
-                <!-- CONTACTS STATE (company drill-down) -->
+                <!-- COMPANY CONTACTS (drill-down with checkboxes) -->
                 <div invisible="state != 'contacts'">
                     <div class="alert alert-info" role="alert">
                         <strong>Contacts for: </strong>
                         <field name="company_line_id" readonly="1" nolabel="1"
                                options="{'no_open': True}"/>
-                        <span> — Check the ones you want to import, then click "Import Selected"</span>
+                        <span> — Check the ones you want, then hit "Import Selected".
+                        The company will be auto-imported too.</span>
                     </div>
                     <field name="contact_ids" nolabel="1">
                         <list editable="bottom">
@@ -100,7 +87,7 @@
                     <footer>
                         <button name="action_import_selected_contacts"
                                 string="Import Selected"
-                                type="object" class="btn-primary"/>
+                                type="object" class="btn-primary" icon="fa-download"/>
                         <button name="action_back_to_results"
                                 string="&#8592; Back to Results"
                                 type="object" class="btn-secondary"/>
@@ -124,4 +111,75 @@
               parent="contacts.menu_contacts"
               action="action_act_import_wizard"
               sequence="20"/>
+
+
+    <!-- ============================================================
+         SYNC wizard  (partner FORM page → UPDATE existing record)
+         ============================================================ -->
+
+    <record id="act_sync_wizard_form" model="ir.ui.view">
+        <field name="name">act.sync.wizard.form</field>
+        <field name="model">act.sync.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Sync with ACT">
+                <field name="state" invisible="1"/>
+                <field name="partner_id" invisible="1"/>
+                <field name="partner_is_company" invisible="1"/>
+
+                <!-- SEARCH -->
+                <div invisible="state != 'search'">
+                    <div class="alert alert-warning" role="alert">
+                        <strong>Updating: </strong>
+                        <field name="partner_name" readonly="1" nolabel="1"/>
+                        <span> — Find the matching ACT record to sync fields into this partner.</span>
+                    </div>
+                    <group>
+                        <field name="search_term"
+                               placeholder="Search ACT..."/>
+                    </group>
+                    <footer>
+                        <button name="action_search" string="Search ACT"
+                                type="object" class="btn-primary" icon="fa-search"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </div>
+
+                <!-- RESULTS -->
+                <div invisible="state != 'results'">
+                    <div class="alert alert-warning" role="alert">
+                        <strong>Syncing: </strong>
+                        <field name="partner_name" readonly="1" nolabel="1"/>
+                        <span> — Click "Sync" to update this partner with ACT data.</span>
+                    </div>
+                    <field name="result_ids" nolabel="1">
+                        <list>
+                            <field name="name" string="Name"/>
+                            <field name="function" string="Job Title"
+                                   invisible="parent.partner_is_company"
+                                   optional="show"/>
+                            <field name="company_name_act" string="Company"
+                                   invisible="parent.partner_is_company"
+                                   optional="show"/>
+                            <field name="industry"
+                                   invisible="not parent.partner_is_company"
+                                   optional="show"/>
+                            <field name="city" optional="show"/>
+                            <field name="state_name" string="State" optional="show"/>
+                            <field name="phone" optional="show"/>
+                            <field name="email" optional="show"/>
+                            <button name="action_sync" string="Sync"
+                                    type="object" class="btn-warning btn-sm"
+                                    icon="fa-refresh"/>
+                        </list>
+                    </field>
+                    <footer>
+                        <button name="action_back" string="&#8592; New Search"
+                                type="object" class="btn-secondary"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </div>
+            </form>
+        </field>
+    </record>
+
 </odoo>
