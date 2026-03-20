@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_act_import_wizard,act.import.wizard,model_act_import_wizard,base.group_user,1,1,1,1
+access_act_import_wizard_line,act.import.wizard.line,model_act_import_wizard_line,base.group_user,1,1,1,1

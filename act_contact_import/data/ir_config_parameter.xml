@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="act_import_db_host" model="ir.config_parameter">
+            <field name="key">act_import.db_host</field>
+            <field name="value">CHANGE_ME</field>
+        </record>
+        <record id="act_import_db_port" model="ir.config_parameter">
+            <field name="key">act_import.db_port</field>
+            <field name="value">14330</field>
+        </record>
+        <record id="act_import_db_name" model="ir.config_parameter">
+            <field name="key">act_import.db_name</field>
+            <field name="value">AZCO</field>
+        </record>
+        <record id="act_import_db_user" model="ir.config_parameter">
+            <field name="key">act_import.db_user</field>
+            <field name="value">odoo_act_reader</field>
+        </record>
+        <record id="act_import_db_password" model="ir.config_parameter">
+            <field name="key">act_import.db_password</field>
+            <field name="value">CHANGE_ME</field>
+        </record>
+    </data>
+</odoo>

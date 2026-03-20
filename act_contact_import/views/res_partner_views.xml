@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Add "Import from ACT" button to partner form -->
+    <record id="view_partner_form_act_import" model="ir.ui.view">
+        <field name="name">res.partner.form.act.import</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="priority">50</field>
+        <field name="arch" type="xml">
+            <xpath expr="//div[hasclass('oe_title')]" position="before">
+                <div class="float-end">
+                    <button name="action_open_act_import"
+                            string="Import from ACT"
+                            type="object"
+                            class="btn-secondary"
+                            icon="fa-download"/>
+                </div>
+            </xpath>
+            <xpath expr="//field[@name='vat']" position="after">
+                <field name="act_contact_id" readonly="1"
+                       invisible="not act_contact_id"/>
+                <field name="act_company_id" readonly="1"
+                       invisible="not act_company_id"/>
+                <field name="act_last_sync" readonly="1"
+                       invisible="not act_last_sync"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

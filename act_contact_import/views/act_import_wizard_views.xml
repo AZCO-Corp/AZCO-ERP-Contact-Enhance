@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="act_import_wizard_form" model="ir.ui.view">
+        <field name="name">act.import.wizard.form</field>
+        <field name="model">act.import.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Import from ACT">
+                <div invisible="state != 'search'">
+                    <group>
+                        <group>
+                            <field name="search_type" widget="radio"/>
+                        </group>
+                        <group>
+                            <field name="search_term" placeholder="Type company or contact name..."/>
+                        </group>
+                    </group>
+                    <footer>
+                        <button name="action_search" string="Search ACT"
+                                type="object" class="btn-primary"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </div>
+                <div invisible="state != 'results'">
+                    <field name="state" invisible="1"/>
+                    <field name="partner_id" invisible="1"/>
+                    <div class="alert alert-info" role="alert">
+                        <strong>Results for: </strong><field name="search_term" readonly="1" nolabel="1"/>
+                        <span> — Click "Import" to populate partner fields</span>
+                    </div>
+                    <field name="result_ids" nolabel="1">
+                        <list>
+                            <field name="name" string="Name"/>
+                            <field name="function" string="Job Title"
+                                   invisible="parent.search_type == 'company'"
+                                   optional="show"/>
+                            <field name="company_name_act" string="Company"
+                                   invisible="parent.search_type == 'company'"
+                                   optional="show"/>
+                            <field name="industry"
+                                   invisible="parent.search_type == 'individual'"
+                                   optional="show"/>
+                            <field name="city" optional="show"/>
+                            <field name="state_name" string="State" optional="show"/>
+                            <field name="phone" optional="show"/>
+                            <field name="email" optional="show"/>
+                            <button name="action_import" string="Import"
+                                    type="object" class="btn-primary btn-sm"/>
+                        </list>
+                    </field>
+                    <footer>
+                        <button name="action_back" string="← Back to Search"
+                                type="object" class="btn-secondary"/>
+                        <button string="Close" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_act_import_wizard" model="ir.actions.act_window">
+        <field name="name">Import from ACT</field>
+        <field name="res_model">act.import.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>
