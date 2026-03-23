@@ -24,11 +24,30 @@
                     <i class="fa fa-ban"/> Blacklisted
                 </span>
             </xpath>
-            <!-- Make company_id editable — Misc group under Sales & Purchase -->
+
+            <!-- Company field: editable on companies, readonly on contacts with tooltip -->
             <xpath expr="//group[@name='misc']/field[@name='company_id']" position="attributes">
-                <attribute name="readonly">0</attribute>
+                <attribute name="readonly">parent_id</attribute>
                 <attribute name="force_save">1</attribute>
             </xpath>
+            <!-- Show company_id_display for contacts (readonly with "All Companies" default) -->
+            <xpath expr="//group[@name='misc']/field[@name='company_id']" position="after">
+                <field name="company_id_display" string="Visibility"
+                       readonly="1" invisible="is_company or not parent_id"
+                       help="Company visibility is inherited from the parent company. Change it there."/>
+            </xpath>
+
+            <!-- Parent industry fields on contacts -->
+            <xpath expr="//group[@name='misc']" position="inside">
+                <field name="parent_industry_id" string="Industry"
+                       invisible="is_company or not parent_id"
+                       options="{'no_open': True}"/>
+                <field name="parent_secondary_industry_ids" string="Secondary Industries"
+                       invisible="is_company or not parent_id"
+                       widget="many2many_tags"
+                       options="{'no_open': True}"/>
+            </xpath>
+
             <!-- ACT tab at the bottom -->
             <xpath expr="//notebook" position="inside">
                 <page string="ACT" name="act_info"

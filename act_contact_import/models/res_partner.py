@@ -46,6 +46,30 @@ class ResPartner(models.Model):
         readonly=True,
     )
 
+    # Inherited from parent company (read-only on contacts)
+    parent_industry_id = fields.Many2one(
+        related="parent_id.industry_id",
+        string="Main Industry",
+        readonly=True,
+    )
+    parent_secondary_industry_ids = fields.Many2many(
+        related="parent_id.secondary_industry_ids",
+        string="Secondary Industries",
+        readonly=True,
+    )
+    company_id_display = fields.Char(
+        string="Visibility",
+        compute="_compute_company_id_display",
+    )
+
+    @api.depends("company_id")
+    def _compute_company_id_display(self):
+        for partner in self:
+            if partner.company_id:
+                partner.company_id_display = partner.company_id.name
+            else:
+                partner.company_id_display = "All Companies (Shared)"
+
     def action_open_act_sync(self):
         """Open the ACT sync wizard. Auto-searches if partner has a name."""
         self.ensure_one()
