@@ -2,14 +2,8 @@
 
 import { ImageField } from "@web/views/fields/image/image_field";
 import { patch } from "@web/core/utils/patch";
-import { useService } from "@web/core/utils/hooks";
 
 patch(ImageField.prototype, {
-    setup() {
-        super.setup(...arguments);
-        this.rpc = useService("rpc");
-    },
-
     async onClipboardPaste() {
         let clipText;
         try {
