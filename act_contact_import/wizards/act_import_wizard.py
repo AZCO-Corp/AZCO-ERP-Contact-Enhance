@@ -614,8 +614,12 @@ class ActSyncWizard(models.TransientModel):
         term = f"%{self.search_term}%"
         lines = []
 
+        # When no partner, search both (like import wizard)
+        search_companies = self.partner_is_company or not self.partner_id
+        search_contacts = not self.partner_is_company or not self.partner_id
+
         try:
-            if self.partner_is_company:
+            if search_companies:
                 cursor.execute(
                     _COMPANY_SQL + " WHERE co.NAME LIKE %s ORDER BY co.NAME",
                     (term,),
@@ -638,7 +642,7 @@ class ActSyncWizard(models.TransientModel):
                         "email": row["email"] or "",
                         "employees": row["NUMEMPLOYEES"] or 0,
                     }))
-            else:
+            if search_contacts:
                 cursor.execute(
                     _CONTACT_SQL
                     + " WHERE c.FULLNAME LIKE %s OR c.COMPANYNAME LIKE %s"
