@@ -106,7 +106,11 @@ class ResPartner(models.Model):
 
     @api.model
     def enrich_by_duns(self, duns, timeout=15):
-        """Override enrichment — scrape website meta tags instead of D&B."""
+        """Override enrichment — re-fetch full place data + scrape website.
+
+        The JS widget replaces the original suggestion with enrichment data,
+        so we must return ALL fields (name, street, etc.) not just the extras.
+        """
         # duns is actually the Google Place ID we stored
         if not duns or not str(duns).startswith("ChI"):
             return super().enrich_by_duns(duns, timeout)
@@ -115,24 +119,37 @@ class ResPartner(models.Model):
         if not api_key:
             return {}
 
-        # Get website from Place Details
+        # Re-fetch full place details (detail endpoint uses unprefixed field names)
+        detail_mask = (
+            "id,displayName,formattedAddress,types,"
+            "nationalPhoneNumber,websiteUri,addressComponents,"
+            "primaryTypeDisplayName"
+        )
         try:
             resp = requests.get(
                 f"https://places.googleapis.com/v1/places/{duns}",
                 headers={
                     "X-Goog-Api-Key": api_key,
-                    "X-Goog-FieldMask": "websiteUri",
+                    "X-Goog-FieldMask": detail_mask,
                 },
                 timeout=timeout,
             )
-            website = resp.json().get("websiteUri", "")
+            resp.raise_for_status()
+            place = resp.json()
         except Exception:
+            _logger.warning("Google Places detail fetch failed", exc_info=True)
             return {}
 
-        if not website:
-            return {}
+        # Format full place data (same as autocomplete results)
+        result = self._format_google_place(place) or {}
 
-        return self._scrape_website_meta(website, timeout)
+        # Scrape website meta for logo + description
+        website = place.get("websiteUri", "")
+        if website:
+            meta = self._scrape_website_meta(website, timeout)
+            result.update(meta)
+
+        return result
 
     @api.model
     def _format_google_place(self, place):
