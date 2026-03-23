@@ -6,14 +6,10 @@
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="priority">50</field>
         <field name="arch" type="xml">
-            <!-- "Sync with ACT" button on partner form -->
+            <!-- "Sync with ACT" button — widget so it doesn't force a save -->
             <xpath expr="//div[hasclass('oe_title')]" position="before">
                 <div class="float-end">
-                    <button name="action_open_act_sync"
-                            string="Sync with ACT"
-                            type="object"
-                            class="btn-secondary"
-                            icon="fa-refresh"/>
+                    <widget name="sync_with_act_button"/>
                 </div>
             </xpath>
             <!-- ACT tab at the bottom -->

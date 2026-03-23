@@ -28,6 +28,7 @@ Features:
     "assets": {
         "web.assets_backend": [
             "act_contact_import/static/src/js/partner_autocomplete_patch.js",
+            "act_contact_import/static/src/js/sync_button.js",
         ],
     },
     "external_dependencies": {

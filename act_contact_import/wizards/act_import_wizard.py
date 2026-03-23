@@ -546,10 +546,11 @@ class ActSyncWizard(models.TransientModel):
     _name = "act.sync.wizard"
     _description = "Sync Partner with ACT"
 
-    partner_id = fields.Many2one("res.partner", required=True, readonly=True)
+    partner_id = fields.Many2one("res.partner", readonly=True)
     partner_name = fields.Char(related="partner_id.name", readonly=True)
     partner_is_company = fields.Boolean(related="partner_id.is_company", readonly=True)
     search_term = fields.Char(string="Search")
+    message = fields.Char(readonly=True)
     result_ids = fields.One2many(
         "act.sync.wizard.line", "wizard_id", string="Results",
     )
@@ -636,18 +637,21 @@ class ActSyncWizard(models.TransientModel):
             conn.close()
 
         if not lines:
-            raise UserError(
-                _("No results found in ACT for '%s'") % self.search_term
-            )
+            # No results — stay on search so user can try a different term
+            self.write({
+                "state": "search",
+                "message": "No results found in ACT for '%s'. Try a different search." % self.search_term,
+            })
+            return self._reopen()
 
-        self.write({"result_ids": lines, "state": "results"})
+        self.write({"result_ids": lines, "state": "results", "message": False})
         return self._reopen()
 
     def action_back(self):
         self.result_ids.unlink()
         self.diff_ids.unlink()
         self.selected_line_id = False
-        self.state = "search"
+        self.write({"state": "search", "message": False})
         return self._reopen()
 
     def action_back_to_results(self):
@@ -660,6 +664,8 @@ class ActSyncWizard(models.TransientModel):
         """Apply the selected diff lines to the partner."""
         self.ensure_one()
         partner = self.partner_id
+        if not partner:
+            raise UserError(_("No partner record to update. Save the contact first."))
         line = self.selected_line_id
 
         selected_diffs = self.diff_ids.filtered(lambda d: d.apply)

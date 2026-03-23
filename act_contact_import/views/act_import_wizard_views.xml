@@ -129,10 +129,15 @@
 
                 <!-- SEARCH -->
                 <div invisible="state != 'search'">
-                    <div class="alert alert-warning" role="alert">
+                    <div class="alert alert-warning" role="alert"
+                         invisible="message">
                         <strong>Updating: </strong>
                         <field name="partner_name" readonly="1" nolabel="1"/>
                         <span> — Find the matching ACT record to sync fields into this partner.</span>
+                    </div>
+                    <div class="alert alert-danger" role="alert"
+                         invisible="not message">
+                        <field name="message" readonly="1" nolabel="1"/>
                     </div>
                     <group>
                         <field name="search_term"
