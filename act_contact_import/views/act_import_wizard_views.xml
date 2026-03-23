@@ -43,12 +43,20 @@
                             <field name="state_name" string="State" optional="show"/>
                             <field name="phone" optional="show"/>
                             <field name="email" optional="show"/>
+                            <field name="existing_partner_id" string="In Odoo"
+                                   widget="many2one" optional="show"
+                                   options="{'no_create': True}"/>
+                            <button name="action_goto_existing" string="Go to"
+                                    type="object" class="btn-success btn-sm"
+                                    invisible="not existing_partner_id"
+                                    icon="fa-external-link"/>
                             <button name="action_view_contacts" string="View Contacts"
                                     type="object" class="btn-info btn-sm"
                                     invisible="record_type != 'company'"
                                     icon="fa-users"/>
                             <button name="action_import" string="Import"
                                     type="object" class="btn-primary btn-sm"
+                                    invisible="existing_partner_id"
                                     icon="fa-download"/>
                         </list>
                     </field>
@@ -173,6 +181,13 @@
                             <field name="state_name" string="State" optional="show"/>
                             <field name="phone" optional="show"/>
                             <field name="email" optional="show"/>
+                            <field name="existing_partner_id" string="In Odoo"
+                                   widget="many2one" optional="show"
+                                   options="{'no_create': True}"/>
+                            <button name="action_goto_existing" string="Go to"
+                                    type="object" class="btn-success btn-sm"
+                                    invisible="not existing_partner_id"
+                                    icon="fa-external-link"/>
                             <button name="action_preview_sync" string="Preview"
                                     type="object" class="btn-warning btn-sm"
                                     icon="fa-eye"/>

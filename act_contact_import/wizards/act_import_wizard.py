@@ -326,6 +326,36 @@ class ActImportWizardLine(models.TransientModel):
     email = fields.Char()
     employees = fields.Integer()
     contact_count = fields.Integer(string="# Contacts")
+    existing_partner_id = fields.Many2one(
+        "res.partner", string="In Odoo", compute="_compute_existing_partner",
+    )
+
+    @api.depends("act_contact_id", "act_company_id", "record_type")
+    def _compute_existing_partner(self):
+        for line in self:
+            partner = self.env["res.partner"]
+            if line.record_type == "individual" and line.act_contact_id:
+                partner = self.env["res.partner"].search(
+                    [("act_contact_id", "=", line.act_contact_id)], limit=1,
+                )
+            elif line.record_type == "company" and line.act_company_id:
+                partner = self.env["res.partner"].search(
+                    [("act_company_id", "=", line.act_company_id),
+                     ("is_company", "=", True)], limit=1,
+                )
+            line.existing_partner_id = partner
+
+    def action_goto_existing(self):
+        self.ensure_one()
+        if not self.existing_partner_id:
+            raise UserError(_("No existing Odoo record found."))
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "res.partner",
+            "res_id": self.existing_partner_id.id,
+            "view_mode": "form",
+            "target": "current",
+        }
 
     def action_import(self):
         """Create a new Odoo partner from this ACT result."""
@@ -734,6 +764,36 @@ class ActSyncWizardLine(models.TransientModel):
     mobile = fields.Char()
     email = fields.Char()
     employees = fields.Integer()
+    existing_partner_id = fields.Many2one(
+        "res.partner", string="In Odoo", compute="_compute_existing_partner",
+    )
+
+    @api.depends("act_contact_id", "act_company_id", "record_type")
+    def _compute_existing_partner(self):
+        for line in self:
+            partner = self.env["res.partner"]
+            if line.record_type == "individual" and line.act_contact_id:
+                partner = self.env["res.partner"].search(
+                    [("act_contact_id", "=", line.act_contact_id)], limit=1,
+                )
+            elif line.record_type == "company" and line.act_company_id:
+                partner = self.env["res.partner"].search(
+                    [("act_company_id", "=", line.act_company_id),
+                     ("is_company", "=", True)], limit=1,
+                )
+            line.existing_partner_id = partner
+
+    def action_goto_existing(self):
+        self.ensure_one()
+        if not self.existing_partner_id:
+            raise UserError(_("No existing Odoo record found."))
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "res.partner",
+            "res_id": self.existing_partner_id.id,
+            "view_mode": "form",
+            "target": "current",
+        }
 
     def action_preview_sync(self):
         """Build a diff between the partner and this ACT record."""
