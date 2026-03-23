@@ -35,7 +35,7 @@ Odoo 18 module (`act_contact_import`) that integrates ACT! CRM data into Odoo pa
 - `data/ir_config_parameter.xml` — ACT connection defaults
 
 ## ACT Database (READ-ONLY)
-- **Server:** AZCO09 (CHANGE_ME), Port: 14330, Instance: ACT7, DB: AZCO
+- **Server:** AZCO09, Port: 14330, Instance: ACT7, DB: AZCO (IP in system params, not in repo)
 - **Odoo user:** `odoo_act_reader` — SELECT only on TBL_CONTACT, TBL_COMPANY, TBL_ADDRESS, TBL_PHONE, TBL_EMAIL, TBL_COMPANY_CONTACT. DENY INSERT/UPDATE/DELETE/ALTER.
 - **Connection params** stored in `ir.config_parameter` (host uses IP, not hostname, because Docker can't resolve domain names)
 - **Driver:** pymssql (installed in Docker container + added to Dockerfile.odoo)
