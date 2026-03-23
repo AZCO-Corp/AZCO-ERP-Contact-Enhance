@@ -57,18 +57,6 @@ class ResPartner(models.Model):
         string="Secondary Industries",
         readonly=True,
     )
-    company_id_display = fields.Char(
-        string="Visibility",
-        compute="_compute_company_id_display",
-    )
-
-    @api.depends("company_id")
-    def _compute_company_id_display(self):
-        for partner in self:
-            if partner.company_id:
-                partner.company_id_display = partner.company_id.name
-            else:
-                partner.company_id_display = "All Companies (Shared)"
 
     def action_open_act_sync(self):
         """Open the ACT sync wizard. Auto-searches if partner has a name."""
