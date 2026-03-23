@@ -24,8 +24,12 @@
                     <i class="fa fa-ban"/> Blacklisted
                 </span>
             </xpath>
-            <!-- Make company_id editable -->
+            <!-- Make all company_id fields editable -->
             <xpath expr="//field[@name='company_id']" position="attributes">
+                <attribute name="readonly">0</attribute>
+                <attribute name="force_save">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='company_id'][2]" position="attributes">
                 <attribute name="readonly">0</attribute>
                 <attribute name="force_save">1</attribute>
             </xpath>
