@@ -527,6 +527,7 @@ class ActImportWizardContact(models.TransientModel):
 
 # Human-readable labels for partner fields
 _FIELD_LABELS = {
+    "name": "Name",
     "street": "Street",
     "street2": "Street 2",
     "city": "City",
@@ -661,11 +662,8 @@ class ActSyncWizard(models.TransientModel):
         return self._reopen()
 
     def action_apply_sync(self):
-        """Apply the selected diff lines to the partner."""
+        """Apply the selected diff lines to the partner (or create one)."""
         self.ensure_one()
-        partner = self.partner_id
-        if not partner:
-            raise UserError(_("No partner record to update. Save the contact first."))
         line = self.selected_line_id
 
         selected_diffs = self.diff_ids.filtered(lambda d: d.apply)
@@ -677,21 +675,29 @@ class ActSyncWizard(models.TransientModel):
         # Set ACT IDs
         if line.record_type == "company":
             vals["act_company_id"] = line.act_company_id
+            vals["is_company"] = True
         else:
             vals["act_contact_id"] = line.act_contact_id
+            vals["is_company"] = False
             if line.act_company_id:
                 vals["act_company_id"] = line.act_company_id
 
         for diff in selected_diffs:
             field_name = diff.field_name
             if field_name in ("state_id", "country_id", "parent_id"):
-                # Relational fields stored as int
                 if diff.new_value_id:
                     vals[field_name] = int(diff.new_value_id)
             else:
                 vals[field_name] = diff.new_value or False
 
-        partner.write(vals)
+        partner = self.partner_id
+        if partner:
+            partner.write(vals)
+        else:
+            # No existing partner — create one
+            if "name" not in vals:
+                vals["name"] = line.name
+            partner = self.env["res.partner"].create(vals)
 
         return {
             "type": "ir.actions.act_window",
@@ -742,6 +748,10 @@ class ActSyncWizardLine(models.TransientModel):
         # Build proposed values map: field_name → (new_value, new_display, new_id)
         proposed = {}
 
+        # Include name when creating a new partner
+        if not partner and self.name:
+            proposed["name"] = (self.name, self.name, "")
+
         # Common fields
         field_map = [
             ("street", self.street),
@@ -787,13 +797,15 @@ class ActSyncWizardLine(models.TransientModel):
         diff_lines = []
         has_changes = False
         for field_name, (new_val, new_display, new_id) in proposed.items():
-            # Get current value
-            current_val = partner[field_name]
-            if hasattr(current_val, 'name'):
-                # Relational field — display name
-                current_display = current_val.name or ""
+            # Get current value (empty if no partner yet)
+            if partner:
+                current_val = partner[field_name]
+                if hasattr(current_val, 'name'):
+                    current_display = current_val.name or ""
+                else:
+                    current_display = str(current_val or "")
             else:
-                current_display = str(current_val or "")
+                current_display = ""
 
             # Determine if this is a real change
             is_change = current_display.strip() != new_display.strip()
