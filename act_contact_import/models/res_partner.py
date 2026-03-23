@@ -47,18 +47,16 @@ class ResPartner(models.Model):
     )
 
     def action_open_act_sync(self):
-        """Open the ACT sync wizard to update this partner from ACT."""
+        """Open the ACT sync wizard. Auto-searches if partner has a name."""
         self.ensure_one()
-        return {
-            "type": "ir.actions.act_window",
-            "res_model": "act.sync.wizard",
-            "view_mode": "form",
-            "target": "new",
-            "context": {
-                "default_partner_id": self.id,
-                "default_search_term": self.name or "",
-            },
-        }
+        wizard = self.env["act.sync.wizard"].create({
+            "partner_id": self.id,
+            "search_term": self.name or "",
+        })
+        # Auto-search if there's a name to search for
+        if self.name and self.name.strip():
+            return wizard.action_search()
+        return wizard._reopen()
 
     # ── helpers ────────────────────────────────────────────────────
 

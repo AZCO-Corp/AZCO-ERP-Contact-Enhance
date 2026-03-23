@@ -549,7 +549,7 @@ class ActSyncWizard(models.TransientModel):
     partner_id = fields.Many2one("res.partner", required=True, readonly=True)
     partner_name = fields.Char(related="partner_id.name", readonly=True)
     partner_is_company = fields.Boolean(related="partner_id.is_company", readonly=True)
-    search_term = fields.Char(string="Search", required=True)
+    search_term = fields.Char(string="Search")
     result_ids = fields.One2many(
         "act.sync.wizard.line", "wizard_id", string="Results",
     )
@@ -575,6 +575,8 @@ class ActSyncWizard(models.TransientModel):
 
     def action_search(self):
         self.ensure_one()
+        if not self.search_term or not self.search_term.strip():
+            raise UserError(_("Please enter a search term."))
         conn = ActMixin._get_act_conn(self.env)
         cursor = conn.cursor(as_dict=True)
         term = f"%{self.search_term}%"
