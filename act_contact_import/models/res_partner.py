@@ -60,6 +60,15 @@ class ResPartner(models.Model):
             },
         }
 
+    # ── helpers ────────────────────────────────────────────────────
+
+    @api.model
+    def _normalize_url(self, url):
+        """Upgrade http:// to https:// — almost all sites support it now."""
+        if url and url.startswith("http://"):
+            return "https://" + url[7:]
+        return url
+
     # ── Google Places autocomplete (replaces Odoo IAP) ────────────
 
     @api.model
@@ -208,7 +217,7 @@ class ResPartner(models.Model):
             "city": components.get("city", ""),
             "zip": components.get("zip", ""),
             "phone": place.get("nationalPhoneNumber", ""),
-            "website": place.get("websiteUri", ""),
+            "website": self._normalize_url(place.get("websiteUri", "")),
             # Store Google Place ID in duns field so enrichment can use it
             "duns": place.get("id", ""),
             "is_company": True,

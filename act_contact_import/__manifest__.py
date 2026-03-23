@@ -25,6 +25,11 @@ Features:
         "views/act_import_wizard_views.xml",
         "views/res_partner_views.xml",
     ],
+    "assets": {
+        "web.assets_backend": [
+            "act_contact_import/static/src/js/partner_autocomplete_patch.js",
+        ],
+    },
     "external_dependencies": {
         "python": ["pymssql"],
     },
