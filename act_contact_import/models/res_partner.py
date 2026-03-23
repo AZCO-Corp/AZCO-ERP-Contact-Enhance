@@ -67,6 +67,38 @@ class ResPartner(models.Model):
             return "https://" + url[7:]
         return url
 
+    # ── clipboard image download ────────────────────────────────────
+
+    @api.model
+    def download_image_from_url(self, url):
+        """Download an image from a URL and return base64 data."""
+        if not url or not url.startswith(("http://", "https://")):
+            return {"error": "Invalid URL."}
+        try:
+            resp = requests.get(
+                url, timeout=15,
+                headers={"User-Agent": "Mozilla/5.0 (compatible; OdooBot)"},
+                allow_redirects=True,
+            )
+            resp.raise_for_status()
+        except requests.exceptions.ConnectionError:
+            return {"error": "Could not connect to the URL."}
+        except requests.exceptions.Timeout:
+            return {"error": "Request timed out."}
+        except requests.exceptions.HTTPError as e:
+            return {"error": "HTTP error: %s" % e.response.status_code}
+        except Exception:
+            return {"error": "Failed to download image."}
+
+        content_type = resp.headers.get("Content-Type", "")
+        if not content_type.startswith("image/"):
+            return {"error": "URL does not point to an image (got %s)." % content_type}
+
+        if len(resp.content) > 10_000_000:
+            return {"error": "Image is too large (max 10MB)."}
+
+        return {"data": base64.b64encode(resp.content).decode()}
+
     # ── Google Places autocomplete (replaces Odoo IAP) ────────────
 
     @api.model
