@@ -46,6 +46,19 @@ class ResPartner(models.Model):
         readonly=True,
     )
 
+    company_id_label = fields.Char(
+        string="Company",
+        compute="_compute_company_id_label",
+    )
+
+    @api.depends("company_id")
+    def _compute_company_id_label(self):
+        for partner in self:
+            partner.company_id_label = (
+                partner.company_id.name if partner.company_id
+                else "All Companies (Shared)"
+            )
+
     # Inherited from parent company (read-only on contacts)
     parent_industry_id = fields.Many2one(
         related="parent_id.industry_id",

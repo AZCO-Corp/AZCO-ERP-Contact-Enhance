@@ -25,12 +25,18 @@
                 </span>
             </xpath>
 
-            <!-- Company field: editable on companies, readonly on contacts -->
+            <!-- Company field: editable on companies, hidden on contacts -->
             <xpath expr="//group[@name='misc']/field[@name='company_id']" position="attributes">
-                <attribute name="readonly">parent_id</attribute>
                 <attribute name="force_save">1</attribute>
                 <attribute name="placeholder">All Companies (Shared)</attribute>
+                <attribute name="invisible">parent_id</attribute>
                 <attribute name="help">Controls which company's users can see this record. Leave blank for all companies.</attribute>
+            </xpath>
+            <!-- Contacts: show readonly label with "All Companies (Shared)" when blank -->
+            <xpath expr="//group[@name='misc']/field[@name='company_id']" position="after">
+                <field name="company_id_label" string="Company"
+                       readonly="1" invisible="not parent_id"
+                       help="Inherited from parent company. Change it on the company record."/>
             </xpath>
 
             <!-- Parent industry fields on contacts -->
