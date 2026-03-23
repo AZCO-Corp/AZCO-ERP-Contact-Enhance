@@ -24,6 +24,11 @@
                     <i class="fa fa-ban"/> Blacklisted
                 </span>
             </xpath>
+            <!-- Make company_id editable -->
+            <xpath expr="//field[@name='company_id']" position="attributes">
+                <attribute name="readonly">0</attribute>
+                <attribute name="force_save">1</attribute>
+            </xpath>
             <!-- ACT tab at the bottom -->
             <xpath expr="//notebook" position="inside">
                 <page string="ACT" name="act_info"
