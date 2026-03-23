@@ -49,6 +49,10 @@ class SyncWithActButton extends Component {
             "action_open_act_sync",
             [partnerId],
         );
+        // Ensure views is set — doAction requires it
+        if (!result.views) {
+            result.views = [[false, "form"]];
+        }
         this.action.doAction(result);
     }
 }
