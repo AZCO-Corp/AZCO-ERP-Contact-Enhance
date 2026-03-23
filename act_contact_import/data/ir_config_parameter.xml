@@ -11,11 +11,11 @@
         </record>
         <record id="act_import_db_name" model="ir.config_parameter">
             <field name="key">act_import.db_name</field>
-            <field name="value">AZCO</field>
+            <field name="value">CHANGE_ME</field>
         </record>
         <record id="act_import_db_user" model="ir.config_parameter">
             <field name="key">act_import.db_user</field>
-            <field name="value">odoo_act_reader</field>
+            <field name="value">CHANGE_ME</field>
         </record>
         <record id="act_import_db_password" model="ir.config_parameter">
             <field name="key">act_import.db_password</field>
