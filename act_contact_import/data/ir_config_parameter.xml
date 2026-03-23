@@ -21,5 +21,9 @@
             <field name="key">act_import.db_password</field>
             <field name="value">CHANGE_ME</field>
         </record>
+        <record id="google_places_api_key" model="ir.config_parameter">
+            <field name="key">google_places.api_key</field>
+            <field name="value">CHANGE_ME</field>
+        </record>
     </data>
 </odoo>

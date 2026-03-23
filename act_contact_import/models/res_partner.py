@@ -1,4 +1,28 @@
-from odoo import fields, models
+import base64
+import logging
+
+import requests
+
+from odoo import api, fields, models
+
+_logger = logging.getLogger(__name__)
+
+_PLACES_FIELD_MASK = (
+    "places.id,places.displayName,places.formattedAddress,places.types,"
+    "places.nationalPhoneNumber,places.websiteUri,places.addressComponents,"
+    "places.primaryTypeDisplayName"
+)
+
+# Map Google address component types → Odoo field fragments
+_COMPONENT_MAP = {
+    "street_number": "street_number",
+    "route": "route",
+    "locality": "city",
+    "administrative_area_level_1": "state",
+    "country": "country",
+    "postal_code": "zip",
+    "subpremise": "subpremise",
+}
 
 
 class ResPartner(models.Model):
@@ -35,3 +59,205 @@ class ResPartner(models.Model):
                 "default_search_term": self.name or "",
             },
         }
+
+    # ── Google Places autocomplete (replaces Odoo IAP) ────────────
+
+    @api.model
+    def _get_google_api_key(self):
+        return (
+            self.env["ir.config_parameter"]
+            .sudo()
+            .get_param("google_places.api_key", "")
+        )
+
+    @api.model
+    def autocomplete_by_name(self, query, query_country_id, timeout=15):
+        """Override partner_autocomplete to use Google Places API."""
+        api_key = self._get_google_api_key()
+        if not api_key:
+            # Fall back to original if no Google key configured
+            return super().autocomplete_by_name(query, query_country_id, timeout)
+
+        try:
+            resp = requests.post(
+                "https://places.googleapis.com/v1/places:searchText",
+                headers={
+                    "Content-Type": "application/json",
+                    "X-Goog-Api-Key": api_key,
+                    "X-Goog-FieldMask": _PLACES_FIELD_MASK,
+                },
+                json={
+                    "textQuery": query,
+                    "languageCode": "en",
+                },
+                timeout=timeout,
+            )
+            resp.raise_for_status()
+        except Exception:
+            _logger.warning("Google Places API call failed", exc_info=True)
+            return []
+
+        results = []
+        for place in resp.json().get("places", [])[:10]:
+            result = self._format_google_place(place)
+            if result:
+                results.append(result)
+        return results
+
+    @api.model
+    def enrich_by_duns(self, duns, timeout=15):
+        """Override enrichment — scrape website meta tags instead of D&B."""
+        # duns is actually the Google Place ID we stored
+        if not duns or not str(duns).startswith("ChI"):
+            return super().enrich_by_duns(duns, timeout)
+
+        api_key = self._get_google_api_key()
+        if not api_key:
+            return {}
+
+        # Get website from Place Details
+        try:
+            resp = requests.get(
+                f"https://places.googleapis.com/v1/places/{duns}",
+                headers={
+                    "X-Goog-Api-Key": api_key,
+                    "X-Goog-FieldMask": "websiteUri",
+                },
+                timeout=timeout,
+            )
+            website = resp.json().get("websiteUri", "")
+        except Exception:
+            return {}
+
+        if not website:
+            return {}
+
+        return self._scrape_website_meta(website, timeout)
+
+    @api.model
+    def _format_google_place(self, place):
+        """Convert a Google Places result into Odoo autocomplete format."""
+        name = place.get("displayName", {}).get("text", "")
+        if not name:
+            return None
+
+        # Parse address components
+        components = {}
+        for comp in place.get("addressComponents", []):
+            for t in comp.get("types", []):
+                if t in _COMPONENT_MAP:
+                    key = _COMPONENT_MAP[t]
+                    components[key] = comp.get("shortText") or comp.get("longText", "")
+                    if key in ("state", "country"):
+                        components[key + "_long"] = comp.get("longText", "")
+
+        # Build street from components
+        street_number = components.get("street_number", "")
+        route = components.get("route", "")
+        subpremise = components.get("subpremise", "")
+        street = f"{street_number} {route}".strip()
+        street2 = f"#{subpremise}" if subpremise else ""
+
+        # Resolve country
+        country = None
+        country_code = components.get("country", "")
+        if country_code:
+            country = self.env["res.country"].search(
+                [("code", "=ilike", country_code)], limit=1
+            )
+
+        # Resolve state
+        state = None
+        state_code = components.get("state", "")
+        state_long = components.get("state_long", "")
+        if country and state_code:
+            state = self.env["res.country.state"].search(
+                [("country_id", "=", country.id), ("code", "=ilike", state_code)],
+                limit=1,
+            )
+        if not state and country and state_long:
+            state = self.env["res.country.state"].search(
+                [("country_id", "=", country.id), ("name", "=ilike", state_long)],
+                limit=1,
+            )
+
+        # Build type label for description
+        ptype = place.get("primaryTypeDisplayName", {}).get("text", "")
+
+        result = {
+            "name": name,
+            "street": street,
+            "street2": street2 or False,
+            "city": components.get("city", ""),
+            "zip": components.get("zip", ""),
+            "phone": place.get("nationalPhoneNumber", ""),
+            "website": place.get("websiteUri", ""),
+            # Store Google Place ID in duns field so enrichment can use it
+            "duns": place.get("id", ""),
+            "is_company": True,
+        }
+
+        if country:
+            result["country_id"] = {
+                "id": country.id,
+                "display_name": country.display_name,
+            }
+        if state:
+            result["state_id"] = {
+                "id": state.id,
+                "display_name": state.display_name,
+            }
+
+        # Add type to description (shown in dropdown)
+        if ptype:
+            result["description"] = ptype
+
+        return result
+
+    @api.model
+    def _scrape_website_meta(self, url, timeout=10):
+        """Scrape meta tags from a website for company enrichment."""
+        try:
+            resp = requests.get(
+                url,
+                timeout=timeout,
+                headers={"User-Agent": "Mozilla/5.0 (compatible; OdooBot)"},
+                allow_redirects=True,
+            )
+            resp.raise_for_status()
+        except Exception:
+            _logger.debug("Failed to scrape %s", url, exc_info=True)
+            return {}
+
+        result = {}
+        try:
+            from bs4 import BeautifulSoup
+
+            soup = BeautifulSoup(resp.text[:100000], "html.parser")
+
+            # Description
+            for tag in soup.find_all("meta"):
+                prop = tag.get("property", "") or tag.get("name", "")
+                content = tag.get("content", "")
+                if prop.lower() in ("og:description", "description") and content:
+                    result["additional_info"] = content[:250]
+                    break
+
+            # Logo from og:image
+            og_img = soup.find("meta", property="og:image")
+            if og_img and og_img.get("content"):
+                img_url = og_img["content"]
+                try:
+                    img_resp = requests.get(
+                        img_url, timeout=5,
+                        headers={"User-Agent": "Mozilla/5.0 (compatible; OdooBot)"},
+                    )
+                    if img_resp.ok and len(img_resp.content) < 500_000:
+                        result["logo"] = base64.b64encode(img_resp.content).decode()
+                except Exception:
+                    pass
+
+        except ImportError:
+            _logger.debug("BeautifulSoup not available for meta scraping")
+
+        return result
