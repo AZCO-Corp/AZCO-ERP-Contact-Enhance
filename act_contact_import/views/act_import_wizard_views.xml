@@ -184,12 +184,14 @@
                             <field name="existing_partner_id" string="In Odoo"
                                    widget="many2one" optional="show"
                                    options="{'no_create': True}"/>
+                            <field name="is_current_partner" column_invisible="1"/>
                             <button name="action_goto_existing" string="Go to"
                                     type="object" class="btn-success btn-sm"
-                                    invisible="not existing_partner_id"
+                                    invisible="not existing_partner_id or is_current_partner"
                                     icon="fa-external-link"/>
                             <button name="action_preview_sync" string="Preview"
                                     type="object" class="btn-warning btn-sm"
+                                    invisible="existing_partner_id and not is_current_partner"
                                     icon="fa-eye"/>
                         </list>
                     </field>

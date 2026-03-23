@@ -767,6 +767,10 @@ class ActSyncWizardLine(models.TransientModel):
     existing_partner_id = fields.Many2one(
         "res.partner", string="In Odoo", compute="_compute_existing_partner",
     )
+    is_current_partner = fields.Boolean(
+        compute="_compute_existing_partner",
+        help="True when the existing Odoo record is the one we're syncing",
+    )
 
     @api.depends("act_contact_id", "act_company_id", "record_type")
     def _compute_existing_partner(self):
@@ -782,6 +786,10 @@ class ActSyncWizardLine(models.TransientModel):
                      ("is_company", "=", True)], limit=1,
                 )
             line.existing_partner_id = partner
+            line.is_current_partner = (
+                partner and line.wizard_id.partner_id
+                and partner.id == line.wizard_id.partner_id.id
+            )
 
     def action_goto_existing(self):
         self.ensure_one()
