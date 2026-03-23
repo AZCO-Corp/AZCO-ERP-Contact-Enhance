@@ -728,10 +728,19 @@ class ActSyncWizard(models.TransientModel):
         if partner:
             partner.write(vals)
         else:
-            # No existing partner — create one
+            # No existing partner — create one.
+            # Split address fields out and write them after create,
+            # because Odoo's onchanges on is_company/parent_id can
+            # blank address fields during create.
             if "name" not in vals:
                 vals["name"] = line.name
+            address_fields = {}
+            for f in ("street", "street2", "city", "zip", "state_id", "country_id"):
+                if f in vals:
+                    address_fields[f] = vals.pop(f)
             partner = self.env["res.partner"].create(vals)
+            if address_fields:
+                partner.write(address_fields)
 
         return {
             "type": "ir.actions.act_window",
