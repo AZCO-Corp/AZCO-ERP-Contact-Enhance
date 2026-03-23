@@ -5,3 +5,4 @@ access_act_import_wizard_contact,act.import.wizard.contact,model_act_import_wiza
 access_act_sync_wizard,act.sync.wizard,model_act_sync_wizard,base.group_user,1,1,1,1
 access_act_sync_wizard_line,act.sync.wizard.line,model_act_sync_wizard_line,base.group_user,1,1,1,1
 access_act_sync_wizard_diff,act.sync.wizard.diff,model_act_sync_wizard_diff,base.group_user,1,1,1,1
+access_partner_blacklist_wizard,partner.blacklist.wizard,model_partner_blacklist_wizard,base.group_user,1,1,1,1

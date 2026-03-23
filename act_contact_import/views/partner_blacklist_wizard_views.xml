@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="partner_blacklist_wizard_form" model="ir.ui.view">
+        <field name="name">partner.blacklist.wizard.form</field>
+        <field name="model">partner.blacklist.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Blacklist Email">
+                <div class="alert alert-danger" role="alert">
+                    <strong>Blacklisting: </strong>
+                    <field name="email" readonly="1" nolabel="1"/>
+                    <br/>
+                    <span>This contact will no longer receive mass mailings.</span>
+                </div>
+                <group>
+                    <field name="partner_id" invisible="1"/>
+                    <field name="reason_id" placeholder="Select a reason..."/>
+                    <field name="note" placeholder="Optional notes..."/>
+                </group>
+                <footer>
+                    <button name="action_blacklist" string="Blacklist"
+                            type="object" class="btn-danger" icon="fa-ban"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

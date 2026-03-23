@@ -58,6 +58,25 @@ class ResPartner(models.Model):
             return wizard.action_search()
         return wizard._reopen()
 
+    # ── blacklist ──────────────────────────────────────────────────
+
+    def action_blacklist_email(self):
+        """Open a wizard to blacklist this partner's email with a reason."""
+        self.ensure_one()
+        if not self.email:
+            from odoo.exceptions import UserError
+            raise UserError("This contact has no email address to blacklist.")
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "partner.blacklist.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_partner_id": self.id,
+                "default_email": self.email,
+            },
+        }
+
     # ── helpers ────────────────────────────────────────────────────
 
     @api.model

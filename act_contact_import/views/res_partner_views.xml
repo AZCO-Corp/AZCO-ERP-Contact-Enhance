@@ -12,6 +12,18 @@
                     <widget name="sync_with_act_button"/>
                 </div>
             </xpath>
+            <!-- Blacklist button next to email -->
+            <xpath expr="//field[@name='email']" position="after">
+                <button name="action_blacklist_email" type="object"
+                        class="btn-link text-danger p-0 ms-1"
+                        icon="fa-ban"
+                        title="Blacklist this email"
+                        invisible="not email or is_blacklisted"/>
+                <span class="text-danger ms-1"
+                      invisible="not is_blacklisted">
+                    <i class="fa fa-ban"/> Blacklisted
+                </span>
+            </xpath>
             <!-- ACT tab at the bottom -->
             <xpath expr="//notebook" position="inside">
                 <page string="ACT" name="act_info"

@@ -18,12 +18,13 @@ Features:
     "author": "AZCO Corp",
     "website": "https://github.com/AZCO-Corp/AZCO-ERP-Contact-Enhance",
     "license": "LGPL-3",
-    "depends": ["contacts", "base", "partner_autocomplete"],
+    "depends": ["contacts", "base", "partner_autocomplete", "mass_mailing"],
     "data": [
         "security/ir.model.access.csv",
         "data/ir_config_parameter.xml",
         "views/act_import_wizard_views.xml",
         "views/res_partner_views.xml",
+        "views/partner_blacklist_wizard_views.xml",
     ],
     "assets": {
         "web.assets_backend": [
